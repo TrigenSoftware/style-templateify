@@ -35,8 +35,7 @@ module.exports = function(file) {
 
 function resolve(variables) {
 
-	var result, path = arguments;
-	[].shift.call(path);
+	var result, path = [].slice.call(arguments, 1);
 
 	for (var key in path) {
 
