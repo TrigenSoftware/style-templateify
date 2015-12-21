@@ -54,9 +54,12 @@ function resolve(variables) {
 
 function generateTemplateModule(cssTemplateString) {
 
-	cssTemplateString = cssTemplateString.replace(/\$[\w\-\.]+/g, function(variable) {
-		return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
-	});
+	cssTemplateString = cssTemplateString
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, "\\n")
+		.replace(/\$[\w\-\.]+/g, function(variable) {
+			return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
+		});
 
 	return resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
 }
