@@ -22,6 +22,10 @@ module.exports = function(file) {
 
 			this.push(generateTemplateModule(source));
 			next();
+			
+		} else {
+
+			next();
 		}
 	});
 };
