@@ -9,7 +9,7 @@ Styles:
 ```
 Script:
 ```js
-import BtnStyles from './btn.sass';
+import BtnStyles from './btn.sast'; // sast/cst
 
 var palette = {
 	bg: "green"
