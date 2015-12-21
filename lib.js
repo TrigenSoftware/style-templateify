@@ -8,17 +8,17 @@ module.exports = function(file) {
 		var ext = path.extname(file),
 			source = buf.toString('utf8');
 
-		if (ext == ".sast") {
+		if (ext == ".sasst" || ext == ".scsst") {
 
 			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
 
-			sass.render({ data: source }, function(err, result) {
+			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
 				this.push(generateTemplateModule(result.css.toString('utf8')));
 				next();
 			});
 
 		} else 
-		if (ext == ".cst") {
+		if (ext == ".csst") {
 
 			this.push(generateTemplateModule(source));
 			next();
