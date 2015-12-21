@@ -51,7 +51,5 @@ function generateTemplateModule(cssTemplateString) {
 		return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
 	});
 
-	var res = resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
-	console.log(res);
-	return res;
+	return resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
 }
