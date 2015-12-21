@@ -15,7 +15,7 @@ module.exports = function(file) {
 			var self = this;
 
 			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
-				selft.push(generateTemplateModule(result.css.toString('utf8')));
+				self.push(generateTemplateModule(result.css.toString('utf8')));
 				next();
 			});
 
