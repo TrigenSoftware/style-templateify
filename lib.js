@@ -12,8 +12,10 @@ module.exports = function(file) {
 
 			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
 
+			var self = this;
+
 			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
-				this.push(generateTemplateModule(result.css.toString('utf8')));
+				selft.push(generateTemplateModule(result.css.toString('utf8')));
 				next();
 			});
 
