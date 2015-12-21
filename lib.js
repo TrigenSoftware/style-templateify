@@ -5,9 +5,10 @@ var path = require('path'),
 module.exports = function(file) {
 	return through(function(buf, enc, next) {
 
-		var source = buf.toString('utf8');
+		var ext = path.extname(file),
+			source = buf.toString('utf8');
 
-		if (path.extname(file) == ".sass") {
+		if (ext == ".sast") {
 
 			source = source.replace(/(\$[\w\-\.]+)/g, '${"$1"}');
 
@@ -16,7 +17,8 @@ module.exports = function(file) {
 				next();
 			});
 
-		} else {
+		} else 
+		if (ext == ".cst") {
 
 			this.push(generateTemplateModule(source));
 			next();
@@ -49,5 +51,7 @@ function generateTemplateModule(cssTemplateString) {
 		return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
 	});
 
-	return resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
+	var res = resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
+	console.log(res);
+	return res;
 }
