@@ -4,7 +4,7 @@ var path = require('path'),
 
 module.exports = function(file) {
 	return through(function(buf, enc, next) {
-
+		
 		var ext = path.extname(file),
 			source = buf.toString('utf8');
 
@@ -25,6 +25,7 @@ module.exports = function(file) {
 			
 		} else {
 
+			this.push(source);
 			next();
 		}
 	});
