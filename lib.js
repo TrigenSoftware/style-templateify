@@ -10,7 +10,7 @@ module.exports = function(file) {
 
 		if (ext == ".sast") {
 
-			source = source.replace(/(\$[\w\-\.]+)/g, '${"$1"}');
+			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
 
 			sass.render({ data: source }, function(err, result) {
 				this.push(generateTemplateModule(result.css.toString('utf8')));
