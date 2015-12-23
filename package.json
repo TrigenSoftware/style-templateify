@@ -1,30 +1,30 @@
 {
-  "name": "style-templateify",
+  "name": "sass-templateify",
   "version": "1.0.1",
-  "description": "Template function generator from CSS/SASS styles for browserify.",
+  "description": "Template function generator from SASS styles for browserify.",
   "main": "lib.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TrigenSoftware/style-templateify.git"
+    "url": "git+https://github.com/TrigenSoftware/sass-templateify.git"
   },
   "keywords": [
     "style",
     "template",
-    "css",
+    "scss",
     "sass",
     "browserify"
   ],
   "author": "dangreen",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/TrigenSoftware/style-templateify/issues"
+    "url": "https://github.com/TrigenSoftware/sass-templateify/issues"
   },
-  "homepage": "https://github.com/TrigenSoftware/style-templateify#readme",
+  "homepage": "https://github.com/TrigenSoftware/sass-templateify#readme",
   "dependencies": {
-    "node-sass": "^3.4.2",
-    "through2": "^2.0.0"
+    "compilify": "^0.1.0",
+    "sass.js": "^0.9.4"
   }
 }

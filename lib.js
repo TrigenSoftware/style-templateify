@@ -1,37 +1,17 @@
-var path = require('path'),
-	sass = require('node-sass'),
-	through = require('through2');
+var fs        = require('fs'),
+	path      = require('path'),
+	compilify = require('compilify');
 
-module.exports = function(file) {
-	return through(function(buf, enc, next) {
-		
-		var ext = path.extname(file),
-			source = buf.toString('utf8');
+var worker = fs.readFileSync(__dirname + "/node_modules/sass.js/dist/sass.worker.js", "utf8")
+	.replace(/"/g, '\\"');
 
-		if (ext == ".sasst" || ext == ".scsst") {
+module.exports = compilify(function(file) {
 
-			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
+	return generateTemplateModule(file);
 
-			var self = this;
-
-			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
-				self.push(generateTemplateModule(result.css.toString('utf8')));
-				next();
-			});
-
-		} else 
-		if (ext == ".csst") {
-
-			this.push(generateTemplateModule(source));
-			next();
-			
-		} else {
-
-			this.push(source);
-			next();
-		}
-	});
-};
+}, {
+	extensions: [".sasst", ".scsst"],
+});
 
 function resolve(variables) {
 
@@ -51,14 +31,30 @@ function resolve(variables) {
 	return result;
 }
 
-function generateTemplateModule(cssTemplateString) {
+function generateTemplateModule(styleTemplateString, ext) {
 
-	cssTemplateString = cssTemplateString
+	styleTemplateString = 
+	'"' + styleTemplateString
 		.replace(/"/g, '\\"')
 		.replace(/\n/g, "\\n")
 		.replace(/\$[\w\-\.]+/g, function(variable) {
 			return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
-		});
+		}) + 
+	'"';
 
-	return resolve + '\nmodule.exports = function(variables) {\n\treturn "' + cssTemplateString + '";\n};';
+	var moduleString = 
+		'var Sass = require("sass.js");' +
+		'if (!global.__sassWorkerUrl) {' +
+			'global.__sassWorkerUrl = URL.createObjectURL(new Blob(["' + worker + '"]));' +
+			'Sass.setWorkerUrl(global.__sassWorkerUrl);' +
+		'}' +
+		'var sass = new Sass();' +  
+		resolve + 
+		'module.exports = function(variables) {' +
+			'return new Promise(function(resolve) {' +
+				'sass.compile(' + styleTemplateString + ', function(result) { resolve(result.text) });' + 
+			'});' +
+		'};';
+	
+	return moduleString;
 }
