@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/TrigenSoftware/sass-templateify#readme",
   "dependencies": {
+    "extend": "^3.0.0",
     "sass.js": "^0.9.4",
     "through2": "^2.0.0"
   }

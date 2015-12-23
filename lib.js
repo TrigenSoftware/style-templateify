@@ -1,19 +1,33 @@
 var fs        = require('fs'),
 	path      = require('path'),
+
+	extend    = require('extend'),
 	through   = require('through2');
 
-var worker;
+module.exports = function(file, options) {
 
-module.exports = function(file) {
+	options = extend({}, options, {
+		target: ".",
+		path:   "."
+	});
+
 	return through(function(buf, enc, next) {
 		
-		var ext = path.extname(file),
-			source = buf.toString('utf8');
+		var ext    = path.extname(file),
+			source = buf.toString('utf8'),
+			self   = this;
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
-			this.push(generateTemplateModule(source, ext == ".sasst"));
-			next();
+			var workerSrc = require.resolve("sass.js/dist/sass.worker.js"),
+				memSrc    = require.resolve("sass.js/dist/libsass.js.mem");
+
+			copy(workerSrc,    options.target + "/sass.worker.js")
+			.then(copy(memSrc, options.target + "/libsass.js.mem"))
+			.then(function() {
+				self.push(generateTemplateModule(source, ext == ".sasst"));
+				next();
+			});
 			
 		} else {
 
@@ -23,42 +37,69 @@ module.exports = function(file) {
 	});
 };
 
+function copy(source, target) {
+	return new Promise(function(resolve, reject) {
 
-function resolve(variables) {
+		fs.readFile(source, "utf8", function(err, file) {
 
-	var result, path = [].slice.call(arguments, 1);
+			if (err) {
+				return reject(err);
+			}
 
-	for (var key in path) {
+			fs.writeFile(target, file, "utf8", function(err) {
 
-		if (typeof variables == "undefined") {
-			return undefined;
+				if (err) {
+					return reject(err);
+				}				
+
+				resolve();
+			});
+		});
+	});
+}
+
+function resolve(variables, prefix) {
+
+	if (typeof variables == "undefined") {
+		return "";
+	}
+
+	var variablesString = "";
+
+	for (var key in variables) {
+
+		var variable = variables[key];
+
+		if (typeof variable == "object" && variable != null) {
+			variablesString += resolve(variable, prefix + key + "-");
+		} else {
+			variablesString += "$" + prefix + key + ': ' + variable + ';\n'; 
 		}
-	
-		key = path[key];
-		result = variables[key];
-		variables = result;
-	} 
+	}
 
-	return result;
+	return variablesString;
 }
 
 function generateTemplateModule(styleTemplateString, indent) {
 
 	styleTemplateString = 
 	'"' + styleTemplateString
+		.replace(/\\/g, "\\\\")
 		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n")
-		.replace(/\$[\w\-\.]+/g, function(variable) {
-			return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
-		}) + 
+		.replace(/\n/g, "\\n") + 
 	'"';
 
 	var moduleString = 
-		'var sass = require("sass.js");' +
+		'var sass = require("' + __dirname + '/_sass.js");' +
 		resolve + 
 		'module.exports = function(variables) {' +
-			'return new Promise(function(_resolve) {' +
-				'sass.compile(' + styleTemplateString + ', { indentedSyntax: ' + (indent?'true':'false') + '}, function(result) { _resolve(result.text) });' + 
+			'return new Promise(function(_resolve, _reject) {' +
+				'sass.compile(resolve(variables, "") + ' + styleTemplateString + ', { indentedSyntax: ' + (indent?'true':'false') + '}, function(result) {' + 
+					'if (result.text) {' + 
+						'return _resolve(result.text);' + 
+					'}' + 
+					'_reject(result);' +
+				'});' + 
 			'});' +
 		'};';
 	
