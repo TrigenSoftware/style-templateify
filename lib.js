@@ -6,10 +6,10 @@ var fs        = require('fs'),
 
 module.exports = function(file, options) {
 
-	options = extend({}, options, {
+	options = extend({}, {
 		target: ".",
 		path:   "."
-	});
+	}, options);
 
 	return through(function(buf, enc, next) {
 		
