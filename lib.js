@@ -90,7 +90,7 @@ function generateTemplateModule(styleTemplateString, indent) {
 	'"';
 
 	var moduleString = 
-		'var sass = require("sass.js/dist/sass.js");' +
+		'var Sass = require("sass.js/dist/sass.js"), sass = new Sass();' +
 		resolve + 
 		'module.exports = function(variables) {' +
 			'return new Promise(function(_resolve, _reject) {' +
