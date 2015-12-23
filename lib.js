@@ -10,12 +10,10 @@ module.exports = function(file) {
 		var ext = path.extname(file),
 			source = buf.toString('utf8');
 
-		if (ext == ".sasst" || ext == ".scsst" || ext == ".csst") {
+		if (ext == ".sasst" || ext == ".scsst") {
 
-			generateTemplateModule(file).then(function(result) {
-				this.push(result);
-				next();
-			});
+			this.push(generateTemplateModule(source, ext == ".sasst"));
+			next();
 			
 		} else {
 
@@ -44,46 +42,25 @@ function resolve(variables) {
 	return result;
 }
 
-function generateTemplateModule(styleTemplateString, ext) {
-	return new Promise(function(resolve) {
+function generateTemplateModule(styleTemplateString, indent) {
 
-		function generate() {
+	styleTemplateString = 
+	'"' + styleTemplateString
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, "\\n")
+		.replace(/\$[\w\-\.]+/g, function(variable) {
+			return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
+		}) + 
+	'"';
 
-			styleTemplateString = 
-			'"' + styleTemplateString
-				.replace(/"/g, '\\"')
-				.replace(/\n/g, "\\n")
-				.replace(/\$[\w\-\.]+/g, function(variable) {
-					return '" + resolve(variables, ' + variable.replace(/\$/, '"').replace(/[\.]/g, '", "') + '") + "';
-				}) + 
-			'"';
-
-			var moduleString = 
-				'var Sass = require("sass.js");' +
-				'if (!global.__sassWorkerUrl) {' +
-					'global.__sassWorkerUrl = URL.createObjectURL(new Blob(["' + worker + '"]));' +
-					'Sass.setWorkerUrl(global.__sassWorkerUrl);' +
-				'}' +
-				'var sass = new Sass();' +  
-				resolve + 
-				'module.exports = function(variables) {' +
-					'return new Promise(function(resolve) {' +
-						'sass.compile(' + styleTemplateString + ', function(result) { resolve(result.text) });' + 
-					'});' +
-				'};';
-			
-			resolve(moduleString);
-		}
-
-		if (typeof worker == "undefined") {
-
-			fs.readFile(require.resolve("sass.js/dist/sass.worker.js"), "utf8", function(err, file) {
-				worker = file.replace(/"/g, '\\"');
-				generate();
-			});
-
-		} else {
-			generate();
-		}
-	});
+	var moduleString = 
+		'var sass = require("sass.js");' +
+		resolve + 
+		'module.exports = function(variables) {' +
+			'return new Promise(function(_resolve) {' +
+				'sass.compile(' + styleTemplateString + ', { indentedSyntax: ' + (indent?'true':'false') + '}, function(result) { _resolve(result.text) });' + 
+			'});' +
+		'};';
+	
+	return moduleString;
 }
