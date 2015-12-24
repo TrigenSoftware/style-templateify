@@ -4,11 +4,14 @@ var fs        = require('fs'),
 	extend    = require('extend'),
 	through   = require('through2');
 
+var copied = false;
+
 module.exports = function(file, options) {
 
 	options = extend({}, {
-		target: ".",
-		path:   "."
+		target:  ".",
+		path:    ".",
+		caching: true
 	}, options);
 
 	return through(function(buf, enc, next) {
@@ -22,10 +25,21 @@ module.exports = function(file, options) {
 			var workerSrc = require.resolve("sass.js/dist/sass.worker.js"),
 				memSrc    = require.resolve("sass.js/dist/libsass.js.mem");
 
+			if (copied && options.caching) {
+
+				this.push(generateTemplateModule(source, options.path + "/sass.worker.js", ext == ".sasst"));
+				next();
+
+				return;
+			}
+
 			copy(workerSrc,    options.target + "/sass.worker.js")
 			.then(copy(memSrc, options.target + "/libsass.js.mem"))
 			.then(function() {
-				self.push(generateTemplateModule(source, ext == ".sasst"));
+
+				copied = true;
+
+				self.push(generateTemplateModule(source, options.path + "/sass.worker.js", ext == ".sasst"));
 				next();
 			});
 			
@@ -80,7 +94,7 @@ function resolve(variables, prefix) {
 	return variablesString;
 }
 
-function generateTemplateModule(styleTemplateString, indent) {
+function generateTemplateModule(styleTemplateString, worker, indent) {
 
 	styleTemplateString = 
 	'"' + styleTemplateString
@@ -90,7 +104,9 @@ function generateTemplateModule(styleTemplateString, indent) {
 	'"';
 
 	var moduleString = 
-		'var Sass = require("sass.js/dist/sass.js"), sass = new Sass();' +
+		'var Sass = require("sass.js/dist/sass.js");' +
+		// 'Sass.setWorkerUrl("' + worker + '");' +
+		'var sass = new Sass();' +
 		resolve + 
 		'module.exports = function(variables) {' +
 			'return new Promise(function(_resolve, _reject) {' +
