@@ -1,10 +1,11 @@
 var fs        = require('fs'),
 	path      = require('path'),
+	ncp       = require('ncp').ncp,
 
 	extend    = require('extend'),
 	through   = require('through2');
 
-var copied = false;
+var initialized = false;
 
 module.exports = function(file, options) {
 
@@ -16,30 +17,30 @@ module.exports = function(file, options) {
 
 	return through(function(buf, enc, next) {
 		
-		var ext    = path.extname(file),
-			source = buf.toString('utf8'),
-			self   = this;
+		var ext = path.extname(file),
+			source;
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
-			var workerSrc = require.resolve("sass.js/dist/sass.worker.js"),
-				memSrc    = require.resolve("sass.js/dist/libsass.js.mem");
+			source = buf.toString('utf8');
 
-			if (copied && options.caching) {
+			if (initialized && options.caching) {
 
-				this.push(generateTemplateModule(source, options.path + "/sass.worker.js", ext == ".sasst"));
+				this.push(generateTemplateModule(source, ext == ".sasst"));
 				next();
 
 				return;
 			}
 
-			copy(workerSrc,    options.target + "/sass.worker.js")
-			.then(copy(memSrc, options.target + "/libsass.js.mem"))
+			var distPath = require.resolve("sass.js/dist"),
+				self = this;
+
+			Promise.all([createModule(options.path), copy(distPath, options.target)])
 			.then(function() {
 
-				copied = true;
+				initialized = true;
 
-				self.push(generateTemplateModule(source, options.path + "/sass.worker.js", ext == ".sasst"));
+				self.push(generateTemplateModule(source, ext == ".sasst"));
 				next();
 			});
 			
@@ -54,20 +55,33 @@ module.exports = function(file, options) {
 function copy(source, target) {
 	return new Promise(function(resolve, reject) {
 
-		fs.readFile(source, "utf8", function(err, file) {
+		ncp(source, target, function(err) {
 
 			if (err) {
 				return reject(err);
-			}
+			}			
 
-			fs.writeFile(target, file, "utf8", function(err) {
+			resolve();
+		});
+	});
+}
 
-				if (err) {
-					return reject(err);
-				}				
+function createModule(path) {
 
-				resolve();
-			});
+	var moduleString = 
+		'var Sass = require("sass.js/dist/sass.js");' +
+		'module.exports = new Sass("' + path + '/dist/sass.worker.js");'
+	;
+
+	return new Promise(function(resolve, reject) {
+
+		fs.writeFile(__dirname + "/_sass.js", moduleString, "utf8", function(err) {
+
+			if (err) {
+				return reject(err);
+			}				
+
+			resolve();
 		});
 	});
 }
@@ -94,7 +108,7 @@ function resolve(variables, prefix) {
 	return variablesString;
 }
 
-function generateTemplateModule(styleTemplateString, worker, indent) {
+function generateTemplateModule(styleTemplateString, indent) {
 
 	styleTemplateString = 
 	'"' + styleTemplateString
@@ -104,9 +118,7 @@ function generateTemplateModule(styleTemplateString, worker, indent) {
 	'"';
 
 	var moduleString = 
-		'var Sass = require("sass.js/dist/sass.js");' +
-		// 'Sass.setWorkerUrl("' + worker + '");' +
-		'var sass = new Sass();' +
+		'var sass = require("' + __dirname + '/_sass.js");' +
 		resolve + 
 		'module.exports = function(variables) {' +
 			'return new Promise(function(_resolve, _reject) {' +
