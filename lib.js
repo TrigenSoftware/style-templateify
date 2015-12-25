@@ -1,6 +1,7 @@
 var fs        = require('fs'),
 	path      = require('path'),
 	ncp       = require('ncp').ncp,
+	mkdirp    = require('mkdirp'),
 
 	extend    = require('extend'),
 	through   = require('through2');
@@ -17,36 +18,39 @@ module.exports = function(file, options) {
 
 	return through(function(buf, enc, next) {
 		
-		var ext = path.extname(file),
-			source;
+		var ext  = path.extname(file),
+			self, source;
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
+			self   = this;
 			source = buf.toString('utf8');
 
 			if (initialized && options.caching) {
 
-				this.push(generateTemplateModule(source, ext == ".sasst"));
-				next();
+				initialized.then(function() {
+					self.push(generateTemplateModule(source, ext == ".sasst"));
+					next();
+				});
 
 				return;
 			}
 
-			var distPath = require.resolve("sass.js/dist"),
-				self = this;
+			var distPath = require.resolve("sass.js/dist/sass.js").replace(/\/sass\.js$/, "");
 
-			Promise.all([createModule(options.path), copy(distPath, options.target)])
-			.then(function() {
+			options.path   += "/sass.js/dist";
+			options.target += "/sass.js/dist";
 
-				initialized = true;
+			initialized = Promise.all([createModule(options.path), copy(distPath, options.target)]);
 
+			initialized.then(function() {
 				self.push(generateTemplateModule(source, ext == ".sasst"));
 				next();
 			});
 			
 		} else {
 
-			this.push(source);
+			this.push(buf);
 			next();
 		}
 	});
@@ -55,13 +59,20 @@ module.exports = function(file, options) {
 function copy(source, target) {
 	return new Promise(function(resolve, reject) {
 
-		ncp(source, target, function(err) {
+		mkdirp(target, function(err) {
 
 			if (err) {
 				return reject(err);
-			}			
+			}
+		
+			ncp(source, target, function(err) {
 
-			resolve();
+				if (err) {
+					return reject(err);
+				}			
+
+				resolve();
+			});
 		});
 	});
 }
@@ -70,7 +81,7 @@ function createModule(path) {
 
 	var moduleString = 
 		'var Sass = require("sass.js/dist/sass.js");' +
-		'module.exports = new Sass("' + path + '/dist/sass.worker.js");'
+		'module.exports = new Sass("' + path + '/sass.worker.js");'
 	;
 
 	return new Promise(function(resolve, reject) {
