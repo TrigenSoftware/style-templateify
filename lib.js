@@ -11,6 +11,16 @@ module.exports = function(file) {
 		if (ext == ".sasst" || ext == ".scsst") {
 
 			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
+			source = source.split(/\{\{|\}\}/)
+				.map(function(expr, i) {
+
+					if (i % 2 == 0) {
+						return expr;
+					}
+
+					return '#{"{{' + expr.replace(/"/g, '\\"') + '}}"}';
+				})
+				.join("");
 
 			var self = this;
 
@@ -73,7 +83,7 @@ function generateTemplateModule(cssTemplateString) {
 			'eval(definition(variables));' + 
 			'return "' + cssTemplateString + '";' +
 		'}' +
-		
+
 		'module.exports = function(variables) {' +
 			'try {' +
 				'return template(variables);' +
