@@ -1,11 +1,11 @@
-# sass-templateify
-Template function generator from SASS styles for browserify.
+# style-templateify
+Template function generator from CSS/SASS styles for browserify.
 
 # Example
 Styles:
 ```sass
 .site__btn
-	background: $palette.bg
+	background: {{palette.bg}}
 ```
 Script:
 ```js
@@ -15,7 +15,5 @@ var palette = {
 	bg: "green"
 };
 
-BtnStyles({ palette }).then((style) => {
-	console.log(style); // .site__btn { background: green }
-});
+console.log(BtnStyles({ palette })); // .site__btn { background: green }
 ```

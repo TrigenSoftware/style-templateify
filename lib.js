@@ -1,103 +1,39 @@
-var fs        = require('fs'),
-	path      = require('path'),
-	ncp       = require('ncp').ncp,
-	mkdirp    = require('mkdirp'),
+var path = require('path'),
+	sass = require('node-sass'),
+	through = require('through2');
 
-	extend    = require('extend'),
-	through   = require('through2');
-
-var initialized = false;
-
-module.exports = function(file, options) {
-
-	options = extend({}, {
-		target:  ".",
-		path:    ".",
-		caching: true
-	}, options);
-
+module.exports = function(file) {
 	return through(function(buf, enc, next) {
 		
-		var ext  = path.extname(file),
-			self, source;
+		var ext = path.extname(file),
+			source = buf.toString('utf8');
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
-			self   = this;
-			source = buf.toString('utf8');
+			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
 
-			if (initialized && options.caching) {
+			var self = this;
 
-				initialized.then(function() {
-					self.push(generateTemplateModule(source, ext == ".sasst"));
-					next();
-				});
-
-				return;
-			}
-
-			var distPath = require.resolve("sass.js/dist/sass.js").replace(/\/sass\.js$/, "");
-
-			options.path   += "/sass.js/dist";
-			options.target += "/sass.js/dist";
-
-			initialized = Promise.all([createModule(options.path), copy(distPath, options.target)]);
-
-			initialized.then(function() {
-				self.push(generateTemplateModule(source, ext == ".sasst"));
+			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
+				self.push(generateTemplateModule(result.css.toString('utf8')));
 				next();
 			});
+
+		} else 
+		if (ext == ".csst") {
+
+			this.push(generateTemplateModule(source));
+			next();
 			
 		} else {
 
-			this.push(buf);
+			this.push(source);
 			next();
 		}
 	});
 };
 
-function copy(source, target) {
-	return new Promise(function(resolve, reject) {
-
-		mkdirp(target, function(err) {
-
-			if (err) {
-				return reject(err);
-			}
-		
-			ncp(source, target, function(err) {
-
-				if (err) {
-					return reject(err);
-				}			
-
-				resolve();
-			});
-		});
-	});
-}
-
-function createModule(path) {
-
-	var moduleString = 
-		'var Sass = require("sass.js/dist/sass.js");' +
-		'module.exports = new Sass("' + path + '/sass.worker.js");'
-	;
-
-	return new Promise(function(resolve, reject) {
-
-		fs.writeFile(__dirname + "/_sass.js", moduleString, "utf8", function(err) {
-
-			if (err) {
-				return reject(err);
-			}				
-
-			resolve();
-		});
-	});
-}
-
-function resolve(variables, prefix) {
+function definition(variables) {
 
 	if (typeof variables == "undefined") {
 		return "";
@@ -109,38 +45,28 @@ function resolve(variables, prefix) {
 
 		var variable = variables[key];
 
-		if (typeof variable == "object" && variable != null) {
-			variablesString += resolve(variable, prefix + key + "-");
-		} else {
-			variablesString += "$" + prefix + key + ': ' + variable + ';\n'; 
-		}
+		variablesString += "," + key + '=variables["' + key + '"]\n'; 
 	}
 
-	return variablesString;
+	return "var " + variablesString.replace(",", "") + ";";
 }
 
-function generateTemplateModule(styleTemplateString, indent) {
+function generateTemplateModule(cssTemplateString) {
 
-	styleTemplateString = 
-	'"' + styleTemplateString
-		.replace(/\\/g, "\\\\")
+	cssTemplateString = cssTemplateString
 		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n") + 
-	'"';
+		.replace(/\n/g, "\\n")
+		.split(/\{\{|\}\}/)
+		.map(function(expr, i) {
 
-	var moduleString = 
-		'var sass = require("' + __dirname + '/_sass.js");' +
-		resolve + 
-		'module.exports = function(variables) {' +
-			'return new Promise(function(_resolve, _reject) {' +
-				'sass.compile(resolve(variables, "") + ' + styleTemplateString + ', { indentedSyntax: ' + (indent?'true':'false') + '}, function(result) {' + 
-					'if (result.text) {' + 
-						'return _resolve(result.text);' + 
-					'}' + 
-					'_reject(result);' +
-				'});' + 
-			'});' +
-		'};';
-	
-	return moduleString;
+			if (i % 2 == 0) {
+				return expr;
+			}
+
+			return '" + (' + expr + ') + "'
+		})
+		.join("");
+
+	return definition +
+		'module.exports = function(variables) {eval(definition(variables));return "' + cssTemplateString + '";};';
 }
