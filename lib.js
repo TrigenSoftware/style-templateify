@@ -68,5 +68,17 @@ function generateTemplateModule(cssTemplateString) {
 		.join("");
 
 	return definition +
-		'module.exports = function(variables) {eval(definition(variables));return "' + cssTemplateString + '";};';
+
+		'function template(variables) {' +
+			'eval(definition(variables));' + 
+			'return "' + cssTemplateString + '";' +
+		'}' +
+		
+		'module.exports = function(variables) {' +
+			'try {' +
+				'return template(variables);' +
+			'} catch(e) {' +
+				'return "";' +
+			'}' +
+		'};';
 }
