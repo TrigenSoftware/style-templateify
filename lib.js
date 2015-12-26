@@ -18,7 +18,7 @@ module.exports = function(file) {
 						return expr;
 					}
 
-					return '#{"{{' + expr.replace(/"/g, '\\"') + '}}"}';
+					return '#{"[var__=' + expr.replace(/"/g, '\\"') + '__var]"}';
 				})
 				.join("");
 
@@ -43,44 +43,23 @@ module.exports = function(file) {
 	});
 };
 
-function definition(variables) {
-
-	if (typeof variables == "undefined") {
-		return "";
-	}
-
-	var variablesString = "";
-
-	for (var key in variables) {
-
-		var variable = variables[key];
-
-		variablesString += "," + key + '=variables["' + key + '"]\n'; 
-	}
-
-	return "var " + variablesString.replace(",", "") + ";";
-}
-
 function generateTemplateModule(cssTemplateString) {
 
 	cssTemplateString = cssTemplateString
 		.replace(/"/g, '\\"')
 		.replace(/\n/g, "\\n")
-		.split(/\{\{|\}\}/)
+		.split(/\{\{|\}\}|\[var__=|__var\]/)
 		.map(function(expr, i) {
 
 			if (i % 2 == 0) {
 				return expr;
 			}
 
-			return '" + (' + expr + ') + "'
+			return '" + (' + expr.replace(/(^|[^\.\w])([a-z\$_]\w*)/g, "$1variables.$2") + ') + "'
 		})
 		.join("");
 
-	return definition +
-
-		'module.exports = function template(variables) {' +
-			'eval(definition(variables));' + 
-			'return "' + cssTemplateString + '";' +
-		'}';
+	return 'module.exports = function(variables) {' +
+		'return "' + cssTemplateString + '";' +
+	'}';
 }
