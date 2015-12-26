@@ -79,16 +79,8 @@ function generateTemplateModule(cssTemplateString) {
 
 	return definition +
 
-		'function template(variables) {' +
+		'module.exports = function template(variables) {' +
 			'eval(definition(variables));' + 
 			'return "' + cssTemplateString + '";' +
-		'}' +
-
-		'module.exports = function(variables) {' +
-			'try {' +
-				'return template(variables);' +
-			'} catch(e) {' +
-				'return "";' +
-			'}' +
-		'};';
+		'}';
 }
