@@ -10,7 +10,6 @@ module.exports = function(file) {
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
-			source = source.replace(/(\$[\w\-\.]+)/g, '#{"$1"}');
 			source = source.split(/\{\{|\}\}/)
 				.map(function(expr, i) {
 
