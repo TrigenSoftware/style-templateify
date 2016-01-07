@@ -27,7 +27,7 @@ module.exports = function(file) {
 			sass.render({ data: source, indentedSyntax: ext == ".sasst" }, function(err, result) {
 
 				if (err) {
-					return next(err);
+					return next(err + "\n");
 				}
 
 				self.push(generateTemplateModule(result.css.toString('utf8')));
