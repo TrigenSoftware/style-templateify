@@ -4,26 +4,27 @@ var fs   = require('fs'),
 	through = require('through2');
 
 function compileSass(source, indentedSyntax, sync) {
-	return new Promise(function(resolve, reject) {
 
-		source = source.split(/\{\{|\}\}/)
-			.map(function(expr, i) {
+	source = source.split(/\{\{|\}\}/)
+		.map(function(expr, i) {
 
-				if (i % 2 == 0) {
-					return expr;
-				}
+			if (i % 2 == 0) {
+				return expr;
+			}
 
-				return '#{"[var__=' + expr.replace(/"/g, '\\"') + '__var]"}';
-			})
-			.join("");
+			return '#{"[var__=' + expr.replace(/"/g, '\\"') + '__var]"}';
+		})
+		.join("");
 
-		if (sync) {
+	if (sync) {
 
-			var result = sass.renderSync({ data: source, indentedSyntax: indentedSyntax });
+		var result = sass.renderSync({ data: source, indentedSyntax: indentedSyntax });
 
-			resolve(generateTemplateModule(result.css.toString('utf8')));
+		return generateTemplateModule(result.css.toString('utf8'));
 
-		} else {
+	} else {
+
+		return new Promise(function(resolve, reject) {
 
 			sass.render({ data: source, indentedSyntax: indentedSyntax }, function(err, result) {
 
@@ -33,8 +34,8 @@ function compileSass(source, indentedSyntax, sync) {
 
 				resolve(generateTemplateModule(result.css.toString('utf8')));
 			});
-		}
-	});
+		});
+	}
 }
 
 function generateTemplateModule(cssTemplateString) {
@@ -94,13 +95,11 @@ module.exports = function(file) {
 module.exports.nodeHook = function() {
 
 	require.extensions['.sasst'] = function(module, filename) { 
-		compileSass(fs.readFileSync(filename, 'utf8'), true, true)
-		.then(eval); 
+		eval(compileSass(fs.readFileSync(filename, 'utf8'), true, true));
 	};
 
 	require.extensions['.scsst'] = function(module, filename) { 
-		compileSass(fs.readFileSync(filename, 'utf8'), false, true)
-		.then(eval); 
+		eval(compileSass(fs.readFileSync(filename, 'utf8'), false, true)); 
 	};
 
 	require.extensions['.csst'] = function(module, filename) { 
