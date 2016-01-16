@@ -92,7 +92,7 @@ module.exports = function(file) {
 	});
 };
 
-module.exports.nodeHook = function() {
+module.exports.install = function() {
 
 	require.extensions['.sasst'] = function(module, filename) { 
 		eval(compileSass(fs.readFileSync(filename, 'utf8'), true, true));
