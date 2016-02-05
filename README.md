@@ -17,3 +17,15 @@ var palette = {
 
 console.log(BtnStyles({ palette })); // .site__btn { background: green }
 ```
+
+Also you can use `style-templateify` with Node.js:
+```js
+import { install } from 'style-templateify';
+
+install();
+
+...
+
+import BtnStyles from './btn.sasst'; 
+
+```
