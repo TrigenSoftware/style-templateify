@@ -1,10 +1,10 @@
 {
   "name": "style-templateify",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Template function generator from CSS/SASS styles for browserify.",
-  "main": "lib.compiled.js",
+  "main": "lib/lib.js",
   "scripts": {
-    "compile": "babel lib.js -o lib.compiled.js",
+    "compile": "babel ./src -d ./lib",
     "prepublish": "npm run compile"
   },
   "repository": {
