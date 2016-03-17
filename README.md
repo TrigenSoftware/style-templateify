@@ -1,4 +1,4 @@
-[![NPM](https://nodei.co/npm/style-templateify.png?compact=true)](https://nodei.co/npm/style-templateify/)
+[![NPM](https://nodei.co/npm/style-templateify.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/style-templateify/)
 
 # style-templateify
 Template function generator from CSS/SASS styles for browserify.
