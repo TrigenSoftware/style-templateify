@@ -9,7 +9,7 @@ function compileSass(data, indentedSyntax, sync) {
 		.map((expr, i) => {
 
 			if (i % 2 == 0) {
-				return expr.replace(/^(\s*)(\%|\+|\-|\/|\*)/, '$1#{"$2"}');
+				return expr.replace(/^(\s*)(\%)/, '$1#{"$2"}');
 			}
 
 			return `#{"[var__=${expr.replace(/"/g, '\\"')}__var]"}`;
