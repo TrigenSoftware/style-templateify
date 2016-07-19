@@ -3,7 +3,7 @@ import Path    from 'path';
 import Fs      from 'fs'; 
 import Sass    from 'node-sass';
 
-function compileSass(data, indentedSyntax, sync) {
+function compileSass(data, file, indentedSyntax, sync) {
 
 	data = data.split(/\{\{|\}\}/)
 		.map((expr, i) => {
@@ -18,7 +18,7 @@ function compileSass(data, indentedSyntax, sync) {
 
 	if (sync) {
 
-		var result = Sass.renderSync({ data, indentedSyntax });
+		var result = Sass.renderSync({ file, data, indentedSyntax });
 
 		return generateTemplateModule(result.css.toString('utf8'));
 
@@ -26,7 +26,7 @@ function compileSass(data, indentedSyntax, sync) {
 
 		return new Promise((resolve, reject) => {
 
-			Sass.render({ data, indentedSyntax }, (err, result) => {
+			Sass.render({ file, data, indentedSyntax }, (err, result) => {
 
 				if (err) {
 					return reject(err);
@@ -68,7 +68,7 @@ function StyleTemplateify(file) {
 
 		if (ext == ".sasst" || ext == ".scsst") {
 
-			compileSass(data, ext == ".sasst")
+			compileSass(data, file, ext == ".sasst")
 			.then((module) => {
 				this.push(module);
 				next();
@@ -95,11 +95,11 @@ module.exports.install =
 function install() {
 
 	require.extensions['.sasst'] = (module, filename) => { 
-		eval(compileSass(Fs.readFileSync(filename, 'utf8'), true, true));
+		eval(compileSass(Fs.readFileSync(filename, 'utf8'), filename, true, true));
 	};
 
 	require.extensions['.scsst'] = (module, filename) => { 
-		eval(compileSass(Fs.readFileSync(filename, 'utf8'), false, true)); 
+		eval(compileSass(Fs.readFileSync(filename, 'utf8'), filename, false, true)); 
 	};
 
 	require.extensions['.csst'] = (module, filename) => { 
